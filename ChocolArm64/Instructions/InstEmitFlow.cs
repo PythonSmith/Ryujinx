@@ -17,6 +17,8 @@ namespace ChocolArm64.Instructions
             }
             else
             {
+                context.TranslateAhead(op.Imm);
+
                 context.EmitStoreState();
                 context.EmitLdc_I8(op.Imm);
 
@@ -34,6 +36,8 @@ namespace ChocolArm64.Instructions
         public static void Bl(ILEmitterCtx context)
         {
             OpCodeBImmAl64 op = (OpCodeBImmAl64)context.CurrOp;
+
+            context.TranslateAhead(op.Position + 4);
 
             context.EmitLdc_I(op.Position + 4);
             context.EmitStint(CpuThreadState.LrIndex);
@@ -62,6 +66,8 @@ namespace ChocolArm64.Instructions
             }
             else
             {
+                context.TranslateAhead(op.Imm);
+
                 context.EmitLdc_I8(op.Imm);
 
                 context.Emit(OpCodes.Ret);
@@ -71,6 +77,8 @@ namespace ChocolArm64.Instructions
         public static void Blr(ILEmitterCtx context)
         {
             OpCodeBReg64 op = (OpCodeBReg64)context.CurrOp;
+
+            context.TranslateAhead(op.Position + 4);
 
             context.EmitLdintzr(op.Rn);
             context.EmitLdc_I(op.Position + 4);
@@ -139,6 +147,8 @@ namespace ChocolArm64.Instructions
             }
             else
             {
+                BranchTranslateAhead(context, op);
+
                 context.EmitStoreState();
 
                 ILLabel lblTaken = new ILLabel();
@@ -168,6 +178,8 @@ namespace ChocolArm64.Instructions
             }
             else
             {
+                BranchTranslateAhead(context, op);
+
                 context.EmitStoreState();
 
                 ILLabel lblTaken = new ILLabel();
@@ -184,6 +196,12 @@ namespace ChocolArm64.Instructions
 
                 context.Emit(OpCodes.Ret);
             }
+        }
+
+        private static void BranchTranslateAhead(ILEmitterCtx context, OpCodeBImm64 op)
+        {
+            context.TranslateAhead(op.Position + 4);
+            context.TranslateAhead(op.Imm);
         }
     }
 }

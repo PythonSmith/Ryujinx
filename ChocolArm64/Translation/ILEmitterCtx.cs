@@ -11,6 +11,9 @@ namespace ChocolArm64.Translation
     class ILEmitterCtx
     {
         private TranslatorCache _cache;
+        private TranslatorQueue _queue;
+
+        private int _depth;
 
         private Dictionary<long, ILLabel> _labels;
 
@@ -45,10 +48,13 @@ namespace ChocolArm64.Translation
         private const int VecTmp1Index    = -5;
         private const int VecTmp2Index    = -6;
 
-        public ILEmitterCtx(TranslatorCache cache, Block graph)
+        public ILEmitterCtx(TranslatorCache cache, TranslatorQueue queue, Block graph, int depth)
         {
             _cache     = cache ?? throw new ArgumentNullException(nameof(cache));
+            _queue     = queue ?? throw new ArgumentNullException(nameof(queue));
             _currBlock = graph ?? throw new ArgumentNullException(nameof(graph));
+
+            _depth = depth;
 
             _labels = new Dictionary<long, ILLabel>();
 
@@ -198,6 +204,20 @@ namespace ChocolArm64.Translation
             }
 
             return new ILBlock();
+        }
+
+        public void TranslateAhead(long position)
+        {
+            if (_depth > 16 || _cache.HasSubroutine(position))
+            {
+                return;
+            }
+
+            _queue.Enqueue(new TranslatorQueueItem(
+                position,
+                _depth + 1,
+                TranslationPriority.High,
+                TranslationCodeQuality.Low));
         }
 
         public bool TryOptEmitSubroutineCall()

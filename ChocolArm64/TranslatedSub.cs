@@ -11,11 +11,11 @@ namespace ChocolArm64
 {
     class TranslatedSub
     {
-        private delegate long Aa64Subroutine(CpuThreadState register, MemoryManager memory);
+        private const int CallCountForReJit = 250;
 
-        private const int MinCallCountForReJit = 250;
+        private delegate long ArmSubroutine(CpuThreadState register, MemoryManager memory);
 
-        private Aa64Subroutine _execDelegate;
+        private ArmSubroutine _execDelegate;
 
         public static int StateArgIdx  { get; private set; }
         public static int MemoryArgIdx { get; private set; }
@@ -28,16 +28,18 @@ namespace ChocolArm64
 
         private HashSet<long> _callers;
 
-        private TranslatedSubType _type;
+        public TranslationCodeQuality TranslationCq { get; private set; }
 
         private int _callCount;
 
         private bool _needsReJit;
 
-        public TranslatedSub(DynamicMethod method, List<Register> subArgs)
+        public TranslatedSub(DynamicMethod method, List<Register> subArgs, TranslationCodeQuality translationCq)
         {
             Method  = method                ?? throw new ArgumentNullException(nameof(method));;
             SubArgs = subArgs?.AsReadOnly() ?? throw new ArgumentNullException(nameof(subArgs));
+
+            TranslationCq = translationCq;
 
             _callers = new HashSet<long>();
 
@@ -46,7 +48,7 @@ namespace ChocolArm64
 
         static TranslatedSub()
         {
-            MethodInfo mthdInfo = typeof(Aa64Subroutine).GetMethod("Invoke");
+            MethodInfo mthdInfo = typeof(ArmSubroutine).GetMethod("Invoke");
 
             ParameterInfo[] Params = mthdInfo.GetParameters();
 
@@ -89,24 +91,22 @@ namespace ChocolArm64
             generator.Emit(OpCodes.Call, Method);
             generator.Emit(OpCodes.Ret);
 
-            _execDelegate = (Aa64Subroutine)mthd.CreateDelegate(typeof(Aa64Subroutine));
-        }
-
-        public bool ShouldReJit()
-        {
-            if (_needsReJit && _callCount < MinCallCountForReJit)
-            {
-                _callCount++;
-
-                return false;
-            }
-
-            return _needsReJit;
+            _execDelegate = (ArmSubroutine)mthd.CreateDelegate(typeof(ArmSubroutine));
         }
 
         public long Execute(CpuThreadState threadState, MemoryManager memory)
         {
             return _execDelegate(threadState, memory);
+        }
+
+        public bool ShouldReJit()
+        {
+            if (TranslationCq == TranslationCodeQuality.High || _callCount++ != CallCountForReJit)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public void AddCaller(long position)
@@ -124,17 +124,5 @@ namespace ChocolArm64
                 return _callers.ToArray();
             }
         }
-
-        public void SetType(TranslatedSubType type)
-        {
-            _type = type;
-
-            if (type == TranslatedSubType.SubTier0)
-            {
-                _needsReJit = true;
-            }
-        }
-
-        public void MarkForReJit() => _needsReJit = true;
     }
 }

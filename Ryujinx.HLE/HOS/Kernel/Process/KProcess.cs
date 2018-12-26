@@ -108,7 +108,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
 
             _threads = new LinkedList<KThread>();
 
-            Translator = new Translator();
+            Translator = new Translator(CpuMemory);
 
             Translator.CpuTrace += CpuTraceHandler;
 
