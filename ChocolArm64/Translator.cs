@@ -4,7 +4,6 @@ using ChocolArm64.Memory;
 using ChocolArm64.State;
 using ChocolArm64.Translation;
 using System;
-using System.Reflection.Emit;
 using System.Threading;
 
 namespace ChocolArm64
@@ -42,12 +41,6 @@ namespace ChocolArm64
             _queue = new TranslatorQueue();
 
             _backgroundTranslators = new Thread[BackgroundTranslatorThreads];
-
-            for (int index = 0; index < _backgroundTranslators.Length; index++)
-            {
-                _backgroundTranslators[index] = new Thread(TranslateQueuedSubs);
-                _backgroundTranslators[index].Start();
-            }
         }
 
         internal void ExecuteSubroutine(CpuThread thread, long position)
@@ -56,9 +49,8 @@ namespace ChocolArm64
             {
                 for (int index = 0; index < BackgroundTranslatorThreads; index++)
                 {
-                    Thread _backgroundTranslator = new Thread(TranslateQueuedSubs);
-
-                    _backgroundTranslator.Start();
+                    _backgroundTranslators[index] = new Thread(TranslateQueuedSubs);
+                    _backgroundTranslators[index].Start();
                 }
             }
 
