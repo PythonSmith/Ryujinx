@@ -440,7 +440,7 @@ namespace Ryujinx.Configuration
         {
             bool configurationFileUpdated = false;
 
-            if (configurationFileFormat is null || configurationFileFormat.Version < 0 || configurationFileFormat.Version > ConfigurationFileFormat.CurrentVersion)
+            if (configurationFileFormat is null || configurationFileFormat.Version <= 0 || configurationFileFormat.Version > ConfigurationFileFormat.CurrentVersion)
             {
                 if (configurationFileFormat is { })
                 {
