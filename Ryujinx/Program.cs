@@ -76,8 +76,7 @@ namespace Ryujinx
                 // Make sure to create the Ryujinx directory if needed.
                 Directory.CreateDirectory(globalBasePath);
 
-                ConfigurationState.Instance.LoadDefault();
-                ConfigurationState.Instance.ToFileFormat().SaveConfig(globalConfigurationPath);
+                ConfigurationState.Instance.CreateDefaultAndLoad(ConfigurationPath);
             }
 
             PrintSystemInfo();

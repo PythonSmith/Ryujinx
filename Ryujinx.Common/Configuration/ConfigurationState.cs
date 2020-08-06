@@ -2,11 +2,11 @@
 using Ryujinx.Common.Configuration;
 using Ryujinx.Common.Configuration.Hid;
 using Ryujinx.Common.Logging;
-using Ryujinx.Configuration.Hid;
 using Ryujinx.Configuration.System;
 using Ryujinx.Configuration.Ui;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Ryujinx.Configuration
 {
@@ -430,271 +430,72 @@ namespace Ryujinx.Configuration
             return configurationFile;
         }
 
-        public void LoadDefault()
+#nullable enable
+        public void CreateDefaultAndLoad(string configurationFilePath)
         {
-            Graphics.ResScale.Value                = 1;
-            Graphics.ResScaleCustom.Value          = 1.0f;
-            Graphics.MaxAnisotropy.Value           = -1;
-            Graphics.ShadersDumpPath.Value         = "";
-            Logger.EnableDebug.Value               = false;
-            Logger.EnableStub.Value                = true;
-            Logger.EnableInfo.Value                = true;
-            Logger.EnableWarn.Value                = true;
-            Logger.EnableError.Value               = true;
-            Logger.EnableGuest.Value               = true;
-            Logger.EnableFsAccessLog.Value         = false;
-            Logger.FilteredClasses.Value           = new LogClass[] { };
-            Logger.GraphicsDebugLevel.Value        = GraphicsDebugLevel.None;
-            Logger.EnableFileLog.Value             = true;
-            System.Language.Value                  = Language.AmericanEnglish;
-            System.Region.Value                    = Region.USA;
-            System.TimeZone.Value                  = "UTC";
-            System.SystemTimeOffset.Value          = 0;
-            System.EnableDockedMode.Value          = false;
-            EnableDiscordIntegration.Value         = true;
-            Graphics.EnableVsync.Value             = true;
-            System.EnableMulticoreScheduling.Value = true;
-            System.EnablePtc.Value                 = false;
-            System.EnableFsIntegrityChecks.Value   = true;
-            System.FsGlobalAccessLogMode.Value     = 0;
-            System.AudioBackend.Value              = AudioBackend.OpenAl;
-            System.IgnoreMissingServices.Value     = false;
-            Ui.GuiColumns.FavColumn.Value          = true;
-            Ui.GuiColumns.IconColumn.Value         = true;
-            Ui.GuiColumns.AppColumn.Value          = true;
-            Ui.GuiColumns.DevColumn.Value          = true;
-            Ui.GuiColumns.VersionColumn.Value      = true;
-            Ui.GuiColumns.TimePlayedColumn.Value   = true;
-            Ui.GuiColumns.LastPlayedColumn.Value   = true;
-            Ui.GuiColumns.FileExtColumn.Value      = true;
-            Ui.GuiColumns.FileSizeColumn.Value     = true;
-            Ui.GuiColumns.PathColumn.Value         = true;
-            Ui.ColumnSort.SortColumnId.Value       = 0;
-            Ui.ColumnSort.SortAscending.Value      = false;
-            Ui.GameDirs.Value                      = new List<string>();
-            Ui.EnableCustomTheme.Value             = false;
-            Ui.CustomThemePath.Value               = "";
-            Hid.EnableKeyboard.Value               = false;
-            
-            Hid.Hotkeys.Value = new KeyboardHotkeys
-            {
-                ToggleVsync = Key.Tab
-            };
-
-            Hid.InputConfig.Value = new List<InputConfig>
-            {
-                new KeyboardConfig
-                {
-                    Index          = 0,
-                    ControllerType = ControllerType.JoyconPair,
-                    PlayerIndex    = PlayerIndex.Player1,
-                    LeftJoycon     = new NpadKeyboardLeft
-                    {
-                        StickUp     = Key.W,
-                        StickDown   = Key.S,
-                        StickLeft   = Key.A,
-                        StickRight  = Key.D,
-                        StickButton = Key.F,
-                        DPadUp      = Key.Up,
-                        DPadDown    = Key.Down,
-                        DPadLeft    = Key.Left,
-                        DPadRight   = Key.Right,
-                        ButtonMinus = Key.Minus,
-                        ButtonL     = Key.E,
-                        ButtonZl    = Key.Q,
-                        ButtonSl    = Key.Home,
-                        ButtonSr    = Key.End
-                    },
-                    RightJoycon    = new NpadKeyboardRight
-                    {
-                        StickUp     = Key.I,
-                        StickDown   = Key.K,
-                        StickLeft   = Key.J,
-                        StickRight  = Key.L,
-                        StickButton = Key.H,
-                        ButtonA     = Key.Z,
-                        ButtonB     = Key.X,
-                        ButtonX     = Key.C,
-                        ButtonY     = Key.V,
-                        ButtonPlus  = Key.Plus,
-                        ButtonR     = Key.U,
-                        ButtonZr    = Key.O,
-                        ButtonSl    = Key.PageUp,
-                        ButtonSr    = Key.PageDown
-                    }
-                }
-            };
+            Load(null, configurationFilePath);
         }
 
-        public void Load(ConfigurationFileFormat configurationFileFormat, string configurationFilePath)
+        public void Load(ConfigurationFileFormat? configurationFileFormat, string configurationFilePath)
         {
             bool configurationFileUpdated = false;
 
-            if (configurationFileFormat.Version < 0 || configurationFileFormat.Version > ConfigurationFileFormat.CurrentVersion)
+            if (configurationFileFormat is null || configurationFileFormat.Version < 0 || configurationFileFormat.Version > ConfigurationFileFormat.CurrentVersion)
             {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Unsupported configuration version {configurationFileFormat.Version}, loading default.");
-
-                LoadDefault();
-
-                return;
-            }
-
-            if (configurationFileFormat.Version < 2)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 2.");
-
-                configurationFileFormat.SystemRegion = Region.USA;
-
-                configurationFileUpdated = true;
-            }
-
-            if (configurationFileFormat.Version < 3)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 3.");
-
-                configurationFileFormat.SystemTimeZone = "UTC";
-
-                configurationFileUpdated = true;
-            }
-
-            if (configurationFileFormat.Version < 4)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 4.");
-
-                configurationFileFormat.MaxAnisotropy = -1;
-
-                configurationFileUpdated = true;
-            }
-
-            if (configurationFileFormat.Version < 5)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 5.");
-
-                configurationFileFormat.SystemTimeOffset = 0;
-
-                configurationFileUpdated = true;
-            }
-
-            if (configurationFileFormat.Version < 6)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 6.");
-
-                configurationFileFormat.ControllerConfig = new List<ControllerConfig>();
-                configurationFileFormat.KeyboardConfig   = new List<KeyboardConfig>
+                if (configurationFileFormat is { })
                 {
-                    new KeyboardConfig
-                    {
-                        Index          = 0,
-                        ControllerType = ControllerType.JoyconPair,
-                        PlayerIndex    = PlayerIndex.Player1,
-                        LeftJoycon     = new NpadKeyboardLeft
-                        {
-                            StickUp     = Key.W,
-                            StickDown   = Key.S,
-                            StickLeft   = Key.A,
-                            StickRight  = Key.D,
-                            StickButton = Key.F,
-                            DPadUp      = Key.Up,
-                            DPadDown    = Key.Down,
-                            DPadLeft    = Key.Left,
-                            DPadRight   = Key.Right,
-                            ButtonMinus = Key.Minus,
-                            ButtonL     = Key.E,
-                            ButtonZl    = Key.Q,
-                            ButtonSl    = Key.Unbound,
-                            ButtonSr    = Key.Unbound
-                        },
-                        RightJoycon    = new NpadKeyboardRight
-                        {
-                            StickUp     = Key.I,
-                            StickDown   = Key.K,
-                            StickLeft   = Key.J,
-                            StickRight  = Key.L,
-                            StickButton = Key.H,
-                            ButtonA     = Key.Z,
-                            ButtonB     = Key.X,
-                            ButtonX     = Key.C,
-                            ButtonY     = Key.V,
-                            ButtonPlus  = Key.Plus,
-                            ButtonR     = Key.U,
-                            ButtonZr    = Key.O,
-                            ButtonSl    = Key.Unbound,
-                            ButtonSr    = Key.Unbound
-                        }
-                    }
+                    Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Unsupported configuration version {configurationFileFormat.Version}, loading default.");
+                }
+
+                configurationFileFormat = new ConfigurationFileFormat()
+                {
+                    Version = ConfigurationFileFormat.CurrentVersion,
                 };
-
                 configurationFileUpdated = true;
             }
-
-            // Only needed for version 6 configurations.
-            if (configurationFileFormat.Version == 6)
+            else
             {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 7.");
+                // Update configuration file if necessary
+                var propertiesToBeSetToDefaultValue = new List<PropertyInfo>();
 
-                for (int i = 0; i < configurationFileFormat.KeyboardConfig.Count; i++)
+                foreach (var property in typeof(ConfigurationFileFormat).GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    if (configurationFileFormat.KeyboardConfig[i].Index != KeyboardConfig.AllKeyboardsIndex)
+                    // Properties in a new configuration version are always marked by the SupportedSince attribute
+                    if (property.GetCustomAttribute<SupportedSinceAttribute>() is { } supportedSince && configurationFileFormat.Version < supportedSince.Version)
                     {
-                        configurationFileFormat.KeyboardConfig[i].Index++;
+                        propertiesToBeSetToDefaultValue.Add(property);
+                    }
+                }
+
+                if (propertiesToBeSetToDefaultValue.Count > 0)
+                {
+                    Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version {ConfigurationFileFormat.CurrentVersion}.");
+
+                    // The default values are defined in the configuration class itself
+                    // So we just need to overwrite all new properties with the default values
+                    var defaultValue = new ConfigurationFileFormat();
+                    foreach (var property in propertiesToBeSetToDefaultValue)
+                    {
+                        property.SetValue(configurationFileFormat, property.GetValue(defaultValue));
+                    }
+                    configurationFileUpdated = true;
+                }
+
+                // Only needed for version 6 configurations.
+                if (configurationFileFormat.Version == 6)
+                {
+                    Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 7.");
+
+                    for (int i = 0; i < configurationFileFormat.KeyboardConfig.Count; i++)
+                    {
+                        if (configurationFileFormat.KeyboardConfig[i].Index != KeyboardConfig.AllKeyboardsIndex)
+                        {
+                            configurationFileFormat.KeyboardConfig[i].Index++;
+                        }
                     }
                 }
             }
 
-            if (configurationFileFormat.Version < 8)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 8.");
-
-                configurationFileFormat.EnablePtc = false;
-
-                configurationFileUpdated = true;
-            }
-
-            if (configurationFileFormat.Version < 9)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 9.");
-
-                configurationFileFormat.ColumnSort = new ColumnSort
-                {
-                    SortColumnId  = 0,
-                    SortAscending = false
-                };
-
-                configurationFileFormat.Hotkeys = new KeyboardHotkeys
-                {
-                    ToggleVsync = Key.Tab
-                };
-
-                configurationFileUpdated = true;
-            }
-
-            if (configurationFileFormat.Version < 10)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 10.");
-
-                configurationFileFormat.AudioBackend = AudioBackend.OpenAl;
-
-                configurationFileUpdated = true;
-            }
-
-            if (configurationFileFormat.Version < 11)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 11.");
-
-                configurationFileFormat.ResScale = 1;
-                configurationFileFormat.ResScaleCustom = 1.0f;
-
-                configurationFileUpdated = true;
-            }
-
-            if (configurationFileFormat.Version < 12)
-            {
-                Common.Logging.Logger.Warning?.Print(LogClass.Application, $"Outdated configuration version {configurationFileFormat.Version}, migrating to version 12.");
-
-                configurationFileFormat.LoggingGraphicsDebugLevel = GraphicsDebugLevel.None;
-
-                configurationFileUpdated = true;
-            }
 
             List<InputConfig> inputConfig = new List<InputConfig>();
             inputConfig.AddRange(configurationFileFormat.ControllerConfig);
@@ -753,6 +554,7 @@ namespace Ryujinx.Configuration
                 Common.Logging.Logger.Warning?.Print(LogClass.Application, "Configuration file has been updated!");
             }
         }
+#nullable restore
 
         public static void Initialize()
         {
