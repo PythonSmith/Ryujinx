@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace ARMeilleure.IntermediateRepresentation
 {
@@ -87,6 +88,12 @@ namespace ARMeilleure.IntermediateRepresentation
         public Register GetRegister()
         {
             return new Register((int)Value & 0xffffff, (RegisterType)(Value >> 24));
+        }
+
+        public T As<T>() where T : struct
+        {
+            throw new NotImplementedException("This method should only be used together with an Expression");
+
         }
 
         public byte AsByte()

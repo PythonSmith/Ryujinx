@@ -3,6 +3,8 @@ using ARMeilleure.IntermediateRepresentation;
 using ARMeilleure.State;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Reflection;
 
 using static ARMeilleure.IntermediateRepresentation.OperandHelper;
@@ -110,6 +112,95 @@ namespace ARMeilleure.Translation
             }
         }
 
+        public Operand Call(Expression<Action> expression)
+        {
+            if (!(expression.Body is MethodCallExpression expr))
+            {
+                throw new NotImplementedException("Only call is currently supported");
+            }
+
+            Debug.Assert(expr.Object is null);
+            var args = new Operand[expr.Arguments.Count];
+            for (int i = 0; i < args.Length; i++)
+            {
+                var arg = expr.Arguments[i];
+                if (arg is MethodCallExpression methodCallExpression)
+                {
+                    if (methodCallExpression.Object is System.Linq.Expressions.MemberExpression member)
+                    {
+                        if (!TryGetMemberOfConstObject<Operand>(member, out var a))
+                        {
+                            throw new InvalidOperationException($"Could not get value from {member}");
+                        }
+                        args[i] = a;
+                    }
+                    else
+                    {
+                        throw new NotImplementedException($"Method call expression is not implemented for object expression {methodCallExpression.Object}");
+                    }
+                }
+                else if (arg is MemberExpression member)
+                {
+                    if (!TryGetMemberOfConstObject<object>(member, out var obj))
+                    {
+                        throw new ArgumentException(paramName: nameof(expression), message: $"Could not get value from {member}");
+                    }
+
+                    Type argumentType;
+                    if (member.Member is PropertyInfo property)
+                    {
+                        argumentType = property.PropertyType;
+                    }
+                    else if (member.Member is FieldInfo field)
+                    {
+                        argumentType = field.FieldType;
+                    }
+                    else
+                    {
+                        throw new NotImplementedException($"MemberInfo of type {member} is not implemented");
+                    }
+
+                    args[i] = Type.GetTypeCode(argumentType) switch
+                    {
+                        TypeCode.Boolean => Const((bool)obj),
+                        TypeCode.Int32 => Const((int)obj),
+                        TypeCode.UInt32 => Const((uint)obj),
+                        TypeCode.UInt64 => Const((ulong)obj),
+                        TypeCode.Int64 => Const((long)obj),
+                        TypeCode.Single => ConstF((float)obj),
+                        TypeCode.Double => ConstF((double)obj),
+                        _ => throw new NotImplementedException($"Type {argumentType} can not be represented as a constant operand"),
+                    };
+                }
+                else
+                {
+                    throw new NotImplementedException($"Unsupported expression {arg} for argument at position {i}");
+                }
+            }
+
+            return Call(expr.Method, args);
+        }
+
+        private static bool TryGetMemberOfConstObject<T>(MemberExpression memberExpression, out T result)
+        {
+            var capturedObject = (memberExpression.Expression as ConstantExpression).Value;
+
+            if (capturedObject is null)
+            {
+                result = default;
+                return false;
+            }
+
+            var (assigned, obj) = memberExpression.Member switch
+            {
+                PropertyInfo property => (true, property.GetValue(capturedObject)),
+                FieldInfo field => (true, field.GetValue(capturedObject)),
+                _ => (false, null)
+            };
+
+            result = assigned ? (T)obj : default;
+            return assigned;
+        }
         private static OperandType GetOperandType(Type type)
         {
             if (type == typeof(bool)   || type == typeof(byte)  ||
