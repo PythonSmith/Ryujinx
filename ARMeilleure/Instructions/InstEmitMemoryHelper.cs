@@ -417,7 +417,7 @@ namespace ARMeilleure.Instructions
                     context.BranchIf(lblNotWatched, pte, Const(0L), Comparison.GreaterOrEqual);
 
                     // Mark the region as modified. Size here doesn't matter as address is assumed to be size aligned here.
-                    context.Call(typeof(NativeInterface).GetMethod(nameof(NativeInterface.MarkRegionAsModified)), address, Const(1UL));
+                    context.Call(() => NativeInterface.MarkRegionAsModified(address.As<ulong>(), 1UL));
                     context.MarkLabel(lblNotWatched);
                 }
 
@@ -427,7 +427,7 @@ namespace ARMeilleure.Instructions
                 context.BranchIfTrue(lblNonNull, pte);
 
                 // The call is not expected to return (it should throw).
-                context.Call(typeof(NativeInterface).GetMethod(nameof(NativeInterface.ThrowInvalidMemoryAccess)), address);
+                context.Call(() => NativeInterface.ThrowInvalidMemoryAccess(address.As<ulong>()));
                 context.MarkLabel(lblNonNull);
 
                 pte = context.BitwiseAnd(pte, Const(0xffffffffffffUL));

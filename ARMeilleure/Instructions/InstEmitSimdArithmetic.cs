@@ -128,8 +128,7 @@ namespace ARMeilleure.Instructions
             for (int index = 0; index < elems; index++)
             {
                 Operand ne = EmitVectorExtractZx(context, op.Rn, index, op.Size);
-
-                Operand de = context.Call(typeof(SoftFallback).GetMethod(nameof(SoftFallback.CountLeadingZeros)), ne, Const(eSize));
+                Operand de = context.Call(() => SoftFallback.CountLeadingZeros(ne.As<ulong>(), eSize));
 
                 res = EmitVectorInsert(context, res, de, index, op.Size);
             }
